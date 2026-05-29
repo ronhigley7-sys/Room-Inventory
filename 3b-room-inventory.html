@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>3B Room Equipment Inventory</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2330;--border:#30363d;
+  --accent:#1f8a5e;--accent-light:#2ea878;--accent-dim:#1a5c40;
+  --warn:#d97706;--danger:#c0392b;--text:#e6edf3;--text-muted:#8b949e;
+  --text-dim:#484f58;--check:#3fb950;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--radius:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.header-left{display:flex;align-items:center;gap:10px;}
+.unit-badge{background:var(--accent);color:#fff;font-family:var(--mono);font-weight:600;font-size:13px;padding:4px 10px;border-radius:var(--radius);letter-spacing:1px;}
+header h1{font-family:var(--mono);font-size:14px;font-weight:500;letter-spacing:.5px;}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:var(--text-dim);transition:background .3s;display:inline-block;margin-right:4px;}
+.conn-dot.ok{background:var(--check);}.conn-dot.err{background:var(--danger);}
+.conn-status{font-family:var(--mono);font-size:10px;color:var(--text-muted);display:flex;align-items:center;}
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 20px;}
+.tab{font-family:var(--mono);font-size:11px;font-weight:600;padding:11px 16px;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;transition:all .15s;text-transform:uppercase;letter-spacing:.8px;}
+.tab:hover{color:var(--text);}.tab.active{color:var(--accent-light);border-bottom-color:var(--accent-light);}
+main{padding:20px;max-width:1500px;margin:0 auto;}
+.panel{display:none;}.panel.active{display:block;}
+.meta-row{display:grid;grid-template-columns:170px 160px 200px 1fr;gap:12px;margin-bottom:20px;align-items:end;}
+.field-group{display:flex;flex-direction:column;gap:5px;}
+label{font-family:var(--mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);}
+input[type="date"],select,input[type="text"]{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 10px;width:100%;transition:border-color .15s;}
+input[type="date"]:focus,select:focus,input[type="text"]:focus{outline:none;border-color:var(--accent-light);}
+select option{background:var(--surface2);}
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{background:var(--surface2);border-bottom:1px solid var(--border);padding:8px 6px;text-align:center;font-family:var(--mono);font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:5;}
+thead th.col-room{text-align:left;min-width:88px;position:sticky;left:0;z-index:10;background:var(--surface2);}
+.rotate-header{writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);height:100px;display:flex;align-items:center;justify-content:flex-start;white-space:normal;line-height:1.2;font-size:9px;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(31,138,94,.06);}
+td{padding:6px 5px;text-align:center;border-right:1px solid var(--border);vertical-align:middle;}
+td:last-child{border-right:none;}
+td.room-cell{text-align:left;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent-light);background:var(--surface);position:sticky;left:0;padding-left:10px;min-width:88px;}
+.cb-wrap{display:flex;align-items:center;justify-content:center;}
+.cb-wrap input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:17px;height:17px;border:1.5px solid var(--border);border-radius:3px;background:var(--bg);cursor:pointer;transition:all .15s;position:relative;}
+.cb-wrap input[type="checkbox"]:hover{border-color:var(--accent-light);}
+.cb-wrap input[type="checkbox"]:checked{background:var(--accent);border-color:var(--accent);}
+.cb-wrap input[type="checkbox"]:checked::after{content:'';position:absolute;left:4px;top:1px;width:5px;height:9px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg);}
+.cell-input{background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;padding:2px 3px;width:100%;text-align:left;}
+.cell-input:focus{outline:none;border-bottom-color:var(--accent-light);}
+.photo-btn{background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:14px;cursor:pointer;padding:3px 6px;transition:all .15s;position:relative;display:inline-flex;align-items:center;}
+.photo-btn:hover{border-color:var(--accent-light);color:var(--accent-light);}
+.photo-btn.has-photos{border-color:var(--accent);color:var(--accent-light);}
+.photo-count{position:absolute;top:-5px;right:-5px;background:var(--accent);color:#fff;border-radius:50%;width:14px;height:14px;font-size:8px;font-family:var(--mono);font-weight:600;display:flex;align-items:center;justify-content:center;}
+.sa-row td{background:rgba(31,138,94,.04);border-bottom:2px solid var(--accent-dim);}
+.sa-row td.room-cell{font-size:9px;color:var(--text-muted);font-style:italic;}
+.btn{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:9px 16px;border-radius:var(--radius);border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:var(--accent-light);}
+.btn-primary:disabled{background:var(--accent-dim);cursor:not-allowed;opacity:.6;}
+.btn-secondary{background:transparent;color:var(--text-muted);border:1px solid var(--border);}
+.btn-secondary:hover{color:var(--text);border-color:var(--text-muted);}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger);font-size:10px;padding:4px 8px;}
+.btn-danger:hover{background:var(--danger);color:#fff;}
+.btn-row{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
+.saving-indicator{font-family:var(--mono);font-size:11px;color:var(--text-muted);display:none;align-items:center;gap:6px;}
+.saving-indicator.show{display:flex;}
+.spin{animation:spin 1s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.history-controls{display:flex;gap:12px;margin-bottom:20px;align-items:flex-end;flex-wrap:wrap;}
+.history-controls input[type="date"],.history-controls select{width:auto;min-width:150px;}
+.stats-strip{display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;min-width:120px;}
+.stat-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px;}
+.stat-value{font-family:var(--mono);font-size:22px;font-weight:600;}
+.stat-value.green{color:var(--check);}.stat-value.accent{color:var(--accent-light);}
+.history-list{display:flex;flex-direction:column;gap:10px;}
+.history-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.history-card-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;transition:background .1s;}
+.history-card-header:hover{background:var(--surface2);}
+.hc-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.hc-date{font-family:var(--mono);font-size:13px;font-weight:600;}
+.hc-shift{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.5px;}
+.shift-Day{background:#1a3a5c;color:#58a6ff;}.shift-Eve1,.shift-Eve2{background:#3a2a10;color:#f0a500;}.shift-Night{background:#1a1a3a;color:#a78bfa;}
+.hc-summary{font-family:var(--mono);font-size:11px;color:var(--text-muted);}
+.hc-chevron{font-size:11px;color:var(--text-dim);transition:transform .2s;}
+.history-card.expanded .hc-chevron{transform:rotate(180deg);}
+.history-card-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border);}
+.history-card.expanded .history-card-body{display:block;}
+.hist-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:11px;overflow-x:auto;display:block;}
+.hist-table th{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);padding:5px 6px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap;}
+.hist-table th.left{text-align:left;}
+.hist-table td{padding:4px 6px;text-align:center;border-bottom:1px solid rgba(48,54,61,.4);font-family:var(--mono);}
+.hist-table td.left{text-align:left;color:var(--accent-light);font-weight:500;}
+.hist-table tr:last-child td{border-bottom:none;}
+.check-y{color:var(--check);}.check-n{color:var(--text-dim);}
+.notes-cell{color:var(--warn);font-size:10px;text-align:left;max-width:120px;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;width:92%;max-width:560px;max-height:90vh;overflow-y:auto;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.modal-title{font-family:var(--mono);font-size:13px;font-weight:600;}
+.modal-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:0 4px;line-height:1;}
+.modal-close:hover{color:var(--text);}
+.capture-zone{border:2px dashed var(--border);border-radius:8px;padding:28px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative;overflow:hidden;}
+.capture-zone:hover{border-color:var(--accent-light);}
+.capture-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.capture-icon{font-size:32px;margin-bottom:8px;}
+.capture-text{font-family:var(--mono);font-size:11px;color:var(--text-muted);}
+.capture-text strong{color:var(--accent-light);}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:16px;}
+.photo-thumb{position:relative;border-radius:6px;overflow:hidden;aspect-ratio:4/3;background:var(--surface2);border:1px solid var(--border);}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;}
+.del-photo{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.7);border:none;color:#fff;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.del-photo:hover{background:var(--danger);}
+.photo-uploading{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:#fff;}
+.photo-ts{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:14px 6px 4px;font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.7);}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:600;align-items:center;justify-content:center;}
+.lightbox.open{display:flex;}
+.lightbox img{max-width:96vw;max-height:90vh;object-fit:contain;border-radius:4px;}
+.lightbox-close{position:absolute;top:16px;right:20px;background:none;border:none;color:#fff;font-size:28px;cursor:pointer;}
+.empty{text-align:center;padding:50px 20px;font-family:var(--mono);color:var(--text-dim);font-size:12px;}
+.loading{text-align:center;padding:40px;font-family:var(--mono);font-size:12px;color:var(--text-muted);}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--accent);color:#fff;font-family:var(--mono);font-size:12px;padding:11px 18px;border-radius:var(--radius);z-index:700;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}.toast.error{background:var(--danger);}.toast.warn{background:var(--warn);}
+@media(max-width:700px){main{padding:12px;}.meta-row{grid-template-columns:1fr 1fr;}.meta-row .field-group:nth-child(3){grid-column:1/-1;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="unit-badge">3B</div>
+    <h1>Room Equipment Inventory</h1>
+  </div>
+  <div class="conn-status">
+    <span class="conn-dot" id="connDot"></span>
+    <span id="connLabel">connecting…</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('entry',this)">New Entry</div>
+  <div class="tab" onclick="switchTab('history',this)">History</div>
+</div>
+
+<main>
+  <div class="panel active" id="panel-entry">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Room Equipment Check</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="saving-indicator" id="savingIndicator"><span class="spin">⟳</span> Saving…</div>
+        <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+      </div>
+    </div>
+    <div class="meta-row">
+      <div class="field-group"><label>Date</label><input type="date" id="entryDate"></div>
+      <div class="field-group"><label>Shift</label>
+        <select id="entryShift">
+          <option value="Day">Day</option><option value="Eve1">Eve1</option>
+          <option value="Eve2">Eve2</option><option value="Night">Night</option>
+        </select>
+      </div>
+      <div class="field-group"><label>Completed By</label><input type="text" id="entryBy" placeholder="Name / Initials"></div>
+      <div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-room">Room</th>
+            <th><div class="rotate-header">Gait Belt</div></th>
+            <th><div class="rotate-header">BP Cuff &amp; Tubing</div></th>
+            <th><div class="rotate-header">SpO2 Sensor &amp; Cable</div></th>
+            <th><div class="rotate-header">Suction Reg &amp; Cannister</div></th>
+            <th><div class="rotate-header">Bedside Table</div></th>
+            <th><div class="rotate-header">Chair for Pt</div></th>
+            <th><div class="rotate-header">Alarm Box &amp; Connections</div></th>
+            <th><div class="rotate-header">Both Sides Bed Working</div></th>
+            <th><div class="rotate-header">Cables Bed-to-Wall</div></th>
+            <th style="min-width:72px"><div class="rotate-header">Bed Serial #</div></th>
+            <th style="min-width:90px;text-align:left;padding-left:8px;vertical-align:bottom;font-size:9px;">Notes</th>
+            <th style="min-width:60px;vertical-align:bottom;font-size:9px;">Photos</th>
+          </tr>
+        </thead>
+        <tbody id="entryBody"></tbody>
+      </table>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="checkAll()">✓ Check All</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveEntry()">💾 Save Entry</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-history">
+    <div class="stats-strip" id="statsStrip"></div>
+    <div class="history-controls">
+      <div class="field-group"><label>Filter Date</label><input type="date" id="filterDate" onchange="applyHistoryFilters()"></div>
+      <div class="field-group"><label>Filter Shift</label>
+        <select id="filterShift" onchange="applyHistoryFilters()">
+          <option value="">All Shifts</option><option value="Day">Day</option>
+          <option value="Eve1">Eve1</option><option value="Eve2">Eve2</option><option value="Night">Night</option>
+        </select>
+      </div>
+      <div class="field-group" style="justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+      </div>
+    </div>
+    <div id="historyList" class="history-list"><div class="loading">Loading…</div></div>
+  </div>
+</main>
+
+<!-- PHOTO MODAL -->
+<div class="modal-overlay" id="photoModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Photos</div>
+      <button class="modal-close" onclick="closePhotoModal()">×</button>
+    </div>
+    <div class="capture-zone">
+      <input type="file" accept="image/*" capture="environment" multiple id="photoFileInput" onchange="handlePhotoFiles(this.files)">
+      <div class="capture-icon">📷</div>
+      <div class="capture-text"><strong>Tap to take photo</strong> or choose from library<br><span style="font-size:9px;margin-top:4px;display:block">Multiple photos supported</span></div>
+    </div>
+    <div class="photo-grid" id="photoGrid"></div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">×</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://xnsdvdfceflmagfhpycw.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhuc2R2ZGZjZWZsbWFnZmhweWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0MTk1NjgsImV4cCI6MjA5NDk5NTU2OH0.UzKZQj4BLxPpH_OCwQR8LyDUeP9YlKn5UtXRFUFaYKA';
+const BUCKET = 'room-photos';
+const SB_H = { 'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'return=representation' };
+
+const ROOMS = [
+  '3b 2-1','3b 2-2','3b 3','3b 4','3b 5-1','3b 5-2','3b 6','3b 7','3b 8','3b 9','3b 10','3b 11',
+  '3b 12-1','3b 12-2','3b 14-1','3b 14-2','3b 15',
+  '3b 16','3b 17-1','3b 17-2','3b 18-1','3b 18-2','3b 19',
+  '3c 3-1','3c 3-2','3c 4-1','3c 4-2','3c 5','3c 6','3c 7-1','3c 7-2',
+  '3c 8','3c 9','3c 10-1','3c 10-2','3c 11','3c 12','3c 14'
+];
+const CB_COLS = [
+  {key:'gaitBelt',label:'Gait Belt'},{key:'bpCuff',label:'BP Cuff & Tubing'},
+  {key:'spo2',label:'SpO2 Sensor & Cable'},{key:'suction',label:'Suction Reg & Cannister'},
+  {key:'bedsideTable',label:'Bedside Table'},{key:'chair',label:'Chair for Pt'},
+  {key:'alarmBox',label:'Alarm Box & Connections'},{key:'bothSides',label:'Both Sides Bed Working'},
+  {key:'cables',label:'Cables Bed-to-Wall'}
+];
+const SHORT = {'Gait Belt':'GB','BP Cuff & Tubing':'BP','SpO2 Sensor & Cable':'SpO2','Suction Reg & Cannister':'Suct','Bedside Table':'BST','Chair for Pt':'Chair','Alarm Box & Connections':'Alarm','Both Sides Bed Working':'Bed✓','Cables Bed-to-Wall':'Cable'};
+
+// pending photos for new entry (before save)
+const pendingPhotos = {}; // room -> [{file, localUrl}]
+
+// modal state
+let modalMode = 'entry'; // 'entry' | 'history'
+let modalRoom = null;
+let modalEntryId = null;
+
+let allHistory = [];
+
+// ── Supabase helpers ──────────────────────────────────────────────────────────
+async function sbGet(path, qs='') {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}${qs}`, {headers:SB_H});
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbPost(path, body) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {method:'POST',headers:SB_H,body:JSON.stringify(body)});
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbDelete(path, qs='') {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}${qs}`, {method:'DELETE',headers:SB_H});
+  if (!r.ok) throw new Error(await r.text());
+}
+async function sbUpload(storagePath, file) {
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`, {
+    method:'POST',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':file.type},
+    body:file
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${storagePath}`;
+}
+async function sbStorageDel(paths) {
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}`, {
+    method:'DELETE',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({prefixes:paths})
+  });
+  if (!r.ok) throw new Error(await r.text());
+}
+function pubUrl(p) { return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${p}`; }
+
+// ── Connection check ──────────────────────────────────────────────────────────
+async function checkConn() {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/inventory_entries?limit=1`,{headers:SB_H});
+    document.getElementById('connDot').className='conn-dot ok';
+    document.getElementById('connLabel').textContent='connected';
+  } catch {
+    document.getElementById('connDot').className='conn-dot err';
+    document.getElementById('connLabel').textContent='offline';
+  }
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
+  if (tab==='history') renderHistory();
+}
+
+// ── Build entry table ─────────────────────────────────────────────────────────
+function buildEntryTable() {
+  document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+  const tbody = document.getElementById('entryBody');
+  tbody.innerHTML = '';
+
+  // select-all row
+  const sa = document.createElement('tr');
+  sa.className = 'sa-row';
+  sa.innerHTML = '<td class="room-cell">Select All ↓</td>';
+  CB_COLS.forEach(col => {
+    const td = document.createElement('td');
+    td.innerHTML = `<div class="cb-wrap"><input type="checkbox" onchange="toggleAll('${col.key}',this.checked)"></div>`;
+    sa.appendChild(td);
+  });
+  sa.innerHTML += '<td></td><td></td><td></td>';
+  tbody.appendChild(sa);
+
+  ROOMS.forEach(room => {
+    const rid = room.replace(/\s/g,'-');
+    const tr = document.createElement('tr');
+    let h = `<td class="room-cell">${room}</td>`;
+    CB_COLS.forEach(col => {
+      h += `<td><div class="cb-wrap"><input type="checkbox" data-room="${room}" data-col="${col.key}"></div></td>`;
+    });
+    h += `<td><input class="cell-input" type="text" placeholder="SN" data-room="${room}" data-col="bedSerial" style="width:65px"></td>`;
+    h += `<td><input class="cell-input" type="text" placeholder="…" data-room="${room}" data-col="notes"></td>`;
+    h += `<td><button class="photo-btn" id="pbtn-${rid}" onclick="openPhotoModal('${room}',null)">📷</button></td>`;
+    tr.innerHTML = h;
+    tbody.appendChild(tr);
+  });
+}
+
+function toggleAll(key, checked) {
+  document.querySelectorAll(`input[data-col="${key}"]`).forEach(cb=>{ if(cb.type==='checkbox') cb.checked=checked; });
+}
+function checkAll() { document.querySelectorAll('#entryBody input[type="checkbox"]').forEach(cb=>cb.checked=true); }
+function clearAll() {
+  document.querySelectorAll('#entryBody input[type="checkbox"]').forEach(cb=>cb.checked=false);
+  document.querySelectorAll('#entryBody input[type="text"]').forEach(i=>i.value='');
+  document.getElementById('entryBy').value='';
+  Object.keys(pendingPhotos).forEach(k=>{ if(pendingPhotos[k]) pendingPhotos[k].forEach(p=>URL.revokeObjectURL(p.localUrl)); delete pendingPhotos[k]; });
+  ROOMS.forEach(r=>updatePBtn(r,0,false));
+}
+
+// ── Save entry ────────────────────────────────────────────────────────────────
+async function saveEntry() {
+  const date = document.getElementById('entryDate').value;
+  const shift = document.getElementById('entryShift').value;
+  const by = document.getElementById('entryBy').value.trim();
+  if (!date) { toast('Please select a date.','error'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  document.getElementById('savingIndicator').classList.add('show');
+
+  try {
+    const rooms = {};
+    ROOMS.forEach(room => {
+      const rd = {};
+      CB_COLS.forEach(col => {
+        const el = document.querySelector(`input[data-room="${room}"][data-col="${col.key}"]`);
+        rd[col.key] = el ? el.checked : false;
+      });
+      ['bedSerial','notes'].forEach(col => {
+        const el = document.querySelector(`input[data-room="${room}"][data-col="${col}"]`);
+        rd[col] = el ? el.value.trim() : '';
+      });
+      rooms[room] = rd;
+    });
+
+    const [entry] = await sbPost('inventory_entries', {date, shift, completed_by:by, rooms});
+    const eid = entry.id;
+
+    // Upload pending photos
+    const ups = [];
+    for (const [room, files] of Object.entries(pendingPhotos)) {
+      if (!files || !files.length) continue;
+      for (const {file} of files) {
+        const ext = file.name.split('.').pop() || 'jpg';
+        const sp = `${eid}/${room.replace(/\s/g,'-')}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        ups.push(sbUpload(sp, file).then(() => sbPost('inventory_photos', {entry_id:eid, room, storage_path:sp})));
+      }
+    }
+    await Promise.all(ups);
+    toast('Entry saved!');
+    clearAll();
+  } catch(e) {
+    console.error(e);
+    toast('Save failed: '+e.message,'error');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('savingIndicator').classList.remove('show');
+  }
+}
+
+// ── Photo modal ───────────────────────────────────────────────────────────────
+function openPhotoModal(room, entryId) {
+  modalRoom = room;
+  modalMode = entryId ? 'history' : 'entry';
+  modalEntryId = entryId || null;
+  document.getElementById('modalTitle').textContent = `📷  ${room}`;
+  document.getElementById('photoModal').classList.add('open');
+  document.getElementById('photoFileInput').value = '';
+  renderPhotoGrid();
+}
+function closePhotoModal() {
+  document.getElementById('photoModal').classList.remove('open');
+  modalRoom = null; modalMode = 'entry'; modalEntryId = null;
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photoGrid');
+  if (modalMode === 'entry') {
+    const files = pendingPhotos[modalRoom] || [];
+    grid.innerHTML = '';
+    files.forEach((item, idx) => {
+      const d = document.createElement('div');
+      d.className = 'photo-thumb';
+      d.innerHTML = `<img src="${item.localUrl}" onclick="openLightbox('${item.localUrl}')"><button class="del-photo" onclick="removePending('${modalRoom}',${idx})">×</button>`;
+      grid.appendChild(d);
+    });
+  } else {
+    grid.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);padding:12px">Loading…</div>';
+    loadRoomPhotos(modalEntryId, modalRoom).then(photos => {
+      grid.innerHTML = '';
+      if (!photos.length) { grid.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);padding:12px;text-align:center">No photos yet.</div>'; return; }
+      photos.forEach(p => {
+        const url = pubUrl(p.storage_path);
+        const ts = new Date(p.uploaded_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+        const d = document.createElement('div');
+        d.className = 'photo-thumb';
+        d.innerHTML = `<img src="${url}" onclick="openLightbox('${url}')"><div class="photo-ts">${ts}</div><button class="del-photo" onclick="deleteHistPhoto('${p.id}','${p.storage_path}')">×</button>`;
+        grid.appendChild(d);
+      });
+    });
+  }
+}
+
+async function loadRoomPhotos(eid, room) {
+  return sbGet('inventory_photos', `?entry_id=eq.${eid}&room=eq.${encodeURIComponent(room)}&order=uploaded_at.asc`);
+}
+
+function handlePhotoFiles(fileList) {
+  if (!fileList.length || !modalRoom) return;
+  Array.from(fileList).forEach(file => {
+    const localUrl = URL.createObjectURL(file);
+    if (modalMode === 'entry') {
+      if (!pendingPhotos[modalRoom]) pendingPhotos[modalRoom] = [];
+      pendingPhotos[modalRoom].push({file, localUrl});
+      updatePBtn(modalRoom, pendingPhotos[modalRoom].length, true);
+    } else {
+      uploadHistPhoto(file, localUrl);
+    }
+  });
+  document.getElementById('photoFileInput').value = '';
+  renderPhotoGrid();
+}
+
+async function uploadHistPhoto(file, localUrl) {
+  const grid = document.getElementById('photoGrid');
+  const d = document.createElement('div');
+  d.className = 'photo-thumb';
+  d.innerHTML = `<img src="${localUrl}"><div class="photo-uploading"><span class="spin">⟳</span></div>`;
+  grid.appendChild(d);
+  try {
+    const ext = file.name.split('.').pop()||'jpg';
+    const sp = `${modalEntryId}/${modalRoom.replace(/\s/g,'-')}/${Date.now()}.${ext}`;
+    await sbUpload(sp, file);
+    await sbPost('inventory_photos', {entry_id:modalEntryId, room:modalRoom, storage_path:sp});
+    renderPhotoGrid();
+    refreshHPBtn(modalEntryId, modalRoom);
+  } catch(e) {
+    d.remove();
+    toast('Upload failed: '+e.message,'error');
+  }
+}
+
+function removePending(room, idx) {
+  if (!pendingPhotos[room]) return;
+  URL.revokeObjectURL(pendingPhotos[room][idx].localUrl);
+  pendingPhotos[room].splice(idx,1);
+  updatePBtn(room, pendingPhotos[room].length, pendingPhotos[room].length > 0);
+  renderPhotoGrid();
+}
+
+async function deleteHistPhoto(pid, sp) {
+  if (!confirm('Delete this photo?')) return;
+  try {
+    await sbDelete('inventory_photos', `?id=eq.${pid}`);
+    await sbStorageDel([sp]);
+    renderPhotoGrid();
+    refreshHPBtn(modalEntryId, modalRoom);
+  } catch(e) { toast('Delete failed: '+e.message,'error'); }
+}
+
+function updatePBtn(room, count, hasPhotos) {
+  const btn = document.getElementById('pbtn-'+room.replace(/\s/g,'-'));
+  if (!btn) return;
+  btn.className = 'photo-btn'+(hasPhotos?' has-photos':'');
+  btn.innerHTML = count>0 ? `📷<span class="photo-count">${count}</span>` : '📷';
+}
+
+async function refreshHPBtn(eid, room) {
+  try {
+    const photos = await loadRoomPhotos(eid, room);
+    const n = photos.length;
+    const id = `hpbtn-${eid}-${room.replace(/\s/g,'-')}`;
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.className='photo-btn'+(n?' has-photos':'');
+    btn.innerHTML = n ? `📷<span class="photo-count">${n}</span>` : '📷';
+  } catch {}
+}
+
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+function openLightbox(url) { document.getElementById('lightboxImg').src=url; document.getElementById('lightbox').classList.add('open'); }
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+
+// ── History ───────────────────────────────────────────────────────────────────
+async function renderHistory() {
+  document.getElementById('historyList').innerHTML='<div class="loading">Loading…</div>';
+  try {
+    allHistory = await sbGet('inventory_entries','?order=saved_at.desc&limit=300');
+    renderStats(allHistory);
+    applyHistoryFilters();
+  } catch(e) {
+    document.getElementById('historyList').innerHTML=`<div class="empty">Failed to load: ${e.message}</div>`;
+  }
+}
+
+function applyHistoryFilters() {
+  const fd = document.getElementById('filterDate').value;
+  const fs = document.getElementById('filterShift').value;
+  let data = allHistory;
+  if (fd) data = data.filter(e=>e.date===fd);
+  if (fs) data = data.filter(e=>e.shift===fs);
+  renderHistList(data);
+}
+
+function renderStats(data) {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('statsStrip').innerHTML = `
+    <div class="stat-box"><div class="stat-label">Total Entries</div><div class="stat-value accent">${data.length}</div></div>
+    <div class="stat-box"><div class="stat-label">Today</div><div class="stat-value green">${data.filter(e=>e.date===today).length}</div></div>
+    <div class="stat-box"><div class="stat-label">Rooms</div><div class="stat-value">${ROOMS.length}</div></div>
+  `;
+}
+
+async function renderHistList(data) {
+  const list = document.getElementById('historyList');
+  if (!data.length) { list.innerHTML='<div class="empty">No entries found.</div>'; return; }
+  list.innerHTML = '';
+
+  // Bulk load photo counts
+  let photoCounts = {};
+  if (data.length) {
+    try {
+      const ids = data.map(e=>`"${e.id}"`).join(',');
+      const photos = await sbGet('inventory_photos',`?entry_id=in.(${ids})&select=entry_id,room`);
+      photos.forEach(p => {
+        if (!photoCounts[p.entry_id]) photoCounts[p.entry_id] = {};
+        photoCounts[p.entry_id][p.room] = (photoCounts[p.entry_id][p.room]||0)+1;
+      });
+    } catch {}
+  }
+
+  data.forEach(entry => {
+    const card = document.createElement('div');
+    card.className = 'history-card';
+    card.dataset.id = entry.id;
+    const rooms = entry.rooms||{};
+    const complete = Object.values(rooms).filter(r=>CB_COLS.every(c=>r[c.key])).length;
+    const total = Object.keys(rooms).length;
+    const dateStr = new Date(entry.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+    const totalPics = Object.values(photoCounts[entry.id]||{}).reduce((a,b)=>a+b,0);
+
+    card.innerHTML = `
+      <div class="history-card-header" onclick="toggleCard('${entry.id}')">
+        <div class="hc-meta">
+          <span class="hc-date">${dateStr}</span>
+          <span class="hc-shift shift-${entry.shift}">${entry.shift}</span>
+          ${entry.completed_by?`<span class="hc-summary">by ${entry.completed_by}</span>`:''}
+          <span class="hc-summary">${complete}/${total} complete</span>
+          ${totalPics?`<span class="hc-summary" style="color:var(--accent-light)">📷 ${totalPics}</span>`:''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-danger" onclick="deleteEntry(event,'${entry.id}')">Delete</button>
+          <span class="hc-chevron">▼</span>
+        </div>
+      </div>
+      <div class="history-card-body" id="hcb-${entry.id}">
+        ${buildHistTable(entry, photoCounts[entry.id]||{})}
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function buildHistTable(entry, roomPics) {
+  const rooms = entry.rooms||{};
+  let h = `<div style="overflow-x:auto"><table class="hist-table"><thead><tr>
+    <th class="left">Room</th>
+    ${CB_COLS.map(c=>`<th>${SHORT[c.label]||c.label.slice(0,4)}</th>`).join('')}
+    <th class="left">Bed SN</th><th class="left">Notes</th><th>📷</th>
+  </tr></thead><tbody>`;
+  ROOMS.forEach(room => {
+    const r = rooms[room]||{};
+    const pc = roomPics[room]||0;
+    const rid = `${entry.id}-${room.replace(/\s/g,'-')}`;
+    h += `<tr>
+      <td class="left">${room}</td>
+      ${CB_COLS.map(c=>`<td>${r[c.key]?'<span class="check-y">✓</span>':'<span class="check-n">—</span>'}</td>`).join('')}
+      <td class="left" style="font-size:10px;color:var(--text-muted)">${r.bedSerial||''}</td>
+      <td class="notes-cell">${r.notes||''}</td>
+      <td><button class="photo-btn ${pc?'has-photos':''}" id="hpbtn-${rid}" onclick="openPhotoModal('${room}','${entry.id}')">📷${pc?`<span class="photo-count">${pc}</span>`:''}</button></td>
+    </tr>`;
+  });
+  h += '</tbody></table></div>';
+  return h;
+}
+
+function toggleCard(id) { document.querySelector(`.history-card[data-id="${id}"]`).classList.toggle('expanded'); }
+
+async function deleteEntry(e, id) {
+  e.stopPropagation();
+  if (!confirm('Delete this entry and all its photos?')) return;
+  try {
+    const photos = await sbGet('inventory_photos',`?entry_id=eq.${id}&select=storage_path`);
+    if (photos.length) await sbStorageDel(photos.map(p=>p.storage_path));
+    await sbDelete('inventory_entries',`?id=eq.${id}`);
+    toast('Entry deleted.');
+    renderHistory();
+  } catch(e) { toast('Delete failed: '+e.message,'error'); }
+}
+
+function clearFilters() {
+  document.getElementById('filterDate').value='';
+  document.getElementById('filterShift').value='';
+  applyHistoryFilters();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show'+(type?' '+type:'');
+  setTimeout(()=>el.className='toast', 3200);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+buildEntryTable();
+checkConn();
+</script>
+</body>
+</html>
